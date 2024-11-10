@@ -1,0 +1,304 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import axios from 'axios';
+
+const UserProfileScreen = ({ route }) => {
+    const { phone } = route.params;
+    const [phoneNumber, setPhoneNumber] = useState(phone);
+    const [userData, setUserData] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState({});
+    const [isEditingDevice, setIsEditingDevice] = useState(false);
+    const [formDataDevice, setFormDataDevice] = useState({});
+    const [deviceId, setDeviceId] = useState([]);
+    const [devices, setDevices] = useState([]);
+    const [responseMessage, setResponseMessage] = useState('');
+
+    const showResponseMessage = (message) => {
+        setResponseMessage(message);
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+        const id = setTimeout(() => {
+            setResponseMessage('');
+        }, 5000);
+        setTimeoutId(id);
+    };
+
+    console.log(phoneNumber);
+    console.log('Phone:', phone);
+
+    const getUserByPhone = `https://meomeov2-besv.onrender.com/users/get-phone/${phoneNumber}`;
+    const updateUserByPhone = `https://meomeov2-besv.onrender.com/users/update-phone/${phoneNumber}`;
+    const getALlDevices = `https://meomeov2-besv.onrender.com/devices/devices-name`;
+
+    //Get User Data when got phoneNumber
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await axios.get(getUserByPhone);
+                const data = response.data[0];
+                console.log(data);
+                if (data) {
+                    setUserData(data);
+                    setFormData({
+                        phoneNumber: data.phoneNumber || '',
+                        address: data.address || '',
+                        dateOfBirth: data.dateOfBirth || '',
+                        citizenNumber: data.citizenNumber || '',
+                        name: data.name || '',
+                    });
+                    setFormDataDevice({
+                        deviceId: data.deviceId || '',
+                        deviceStatus: data.deviceStatus || '',
+                    });
+                    setDeviceId(formDataDevice.deviceId);
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy dữ liệu:', error);
+            }
+        };
+        if (phoneNumber) {
+            fetchData();
+        }
+    }, [phoneNumber]);
+
+    //Updating User Button Status
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleSave = async () => {
+        try {
+            await axios.put(updateUserByPhone, formData);
+            setUserData(formData);
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Lỗi khi cập nhật dữ liệu:', error);
+        }
+    };
+
+    const handleChange = (field, value) => {
+        setFormData({ ...formData, [field]: value });
+    };
+    // The end of user, this part is for Updating Device
+
+    const fetchDevices = async () => {
+        try {
+            const response = await fetch(getALlDevices);
+            const data = await response.json();
+            setDevices(data);
+        } catch (error) {
+            console.error('Có lỗi xảy ra khi lấy danh sách thiết bị:', error);
+            showResponseMessage('Vui lòng kiểm tra lại kết nối mạng!');
+        }
+    };
+    useEffect(() => {
+        fetchDevices();
+    }, []);
+
+
+    const handleDeviceIdChange = (text) => {
+        const textRegex = text.replace(/[^0-9A-Fa-f]/g, '').slice(0, 12);
+        const dotReform = textRegex.match(/.{1,2}/g)?.join(':') || '';
+        setDeviceId(dotReform);
+    };
+
+    const handleSaveDevice = async () => {
+        if (deviceId.length < 17) {
+            showResponseMessage('Mã thiết bị không hợp lệ, vui lòng kiểm tra lại!');
+            return;
+        }
+        //So sánh với tệp devices
+        if (!devices.includes(deviceId)) {
+            showResponseMessage('Thiết bị không tồn tại, vui lòng kiểm tra lại mã!!!');
+            return;
+        }
+        try {
+            await axios.put(updateUserByPhone, {
+                deviceId: deviceId,
+                deviceStatus: formDataDevice.deviceStatus,
+            });
+            setFormDataDevice({ ...formDataDevice, deviceId });
+            setIsEditingDevice(false);
+        } catch (error) {
+            console.error('Lỗi khi cập nhật thiết bị:', error);
+        }
+    };
+
+    const handleEditDevice = () => {
+        setIsEditingDevice(true);
+    };
+
+    const CustomButton = ({ title, onPress }) => (
+        <TouchableOpacity style={styles.button} onPress={onPress}>
+            <Text style={styles.buttonText}>{title}</Text>
+        </TouchableOpacity>
+    );
+
+    return (
+        <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.header}>Xin chào, {userData?.name}!</Text>
+            <Text style={styles.header2}>Thông Tin Của Bạn</Text>
+            {userData && (
+                <>
+                    <View style={styles.row}>
+                        <Text style={styles.label}>Họ và tên:</Text>
+                        <TextInput
+                            style={isEditing ? styles.input2 : styles.input}
+                            value={formData.name}
+                            onChangeText={(value) => handleChange('name', value)}
+                            editable={isEditing}
+                        />
+                    </View>
+
+                    <View style={styles.row}>
+                        <Text style={styles.label}>CCCD:</Text>
+                        <TextInput
+                            style={isEditing ? styles.input2 : styles.input}
+                            value={formData.citizenNumber}
+                            onChangeText={(value) => handleChange('citizenNumber', value)}
+                            editable={isEditing}
+                        />
+                    </View>
+
+                    <View style={styles.row}>
+                        <Text style={styles.label}>Ngày sinh:</Text>
+                        <TextInput
+                            style={isEditing ? styles.input2 : styles.input}
+                            value={formData.dateOfBirth}
+                            onChangeText={(value) => handleChange('dateOfBirth', value)}
+                            editable={isEditing}
+                        />
+                    </View>
+
+                    <View style={styles.row}>
+                        <Text style={styles.label}>Địa chỉ:</Text>
+                        <TextInput
+                            style={isEditing ? styles.input2 : styles.input}
+                            value={formData.address}
+                            onChangeText={(value) => handleChange('address', value)}
+                            editable={isEditing}
+                        />
+                    </View>
+
+                    <View style={styles.row}>
+                        <Text style={styles.label}>Số điện thoại:</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={formData.phoneNumber}
+                            editable={false}
+                        />
+                    </View>
+
+                    {isEditing ? (
+                        <CustomButton title="Lưu" onPress={handleSave} />
+                    ) : (
+                        <CustomButton title="Chỉnh sửa" onPress={handleEdit} />
+                    )}
+
+                    <View style={styles.row}>
+                        <Text style={styles.label}>Thiết bị của bạn:</Text>
+                        <TextInput
+                            style={isEditingDevice ? styles.input2 : styles.input}
+                            value={isEditingDevice ? deviceId : formDataDevice.deviceId}
+                            maxLength={17}
+                            placeholder="00:00:00:00:00:00"
+                            keyboardType="default"
+                            onChangeText={handleDeviceIdChange}
+                            editable={isEditingDevice}
+                        />
+                    </View>
+
+                    <View style={styles.row}>
+                        <Text style={styles.label}>Trạng thái thiết bị:</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={formDataDevice.deviceStatus}
+                            editable={false}
+                        />
+                    </View>
+
+                    {isEditingDevice ? (
+                        <CustomButton title="Lưu thiết bị" onPress={handleSaveDevice} />
+                    ) : (
+                        <CustomButton title="Chỉnh sửa thiết bị" onPress={handleEditDevice} />
+                    )}
+                    {responseMessage ? <Text style={styles.errorText}>{responseMessage}</Text> : null}
+
+                </>
+            )}
+        </ScrollView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        padding: 20,
+    },
+    header: {
+        fontSize: 24,
+        marginBottom: 10,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    header2: {
+        fontSize: 20,
+        marginBottom: 15,
+        fontWeight: 'bold',
+    },
+    label: {
+        fontSize: 16,
+        marginTop: 10,
+        flex: 1,
+        fontWeight: 'bold',
+        marginRight: 5,
+        marginLeft: 10,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        padding: 10,
+        borderRadius: 5,
+        marginTop: 5,
+        backgroundColor: '#f0f0f0',
+        flex: 2,
+        marginRight: 10,
+    },
+    input2: {
+        borderWidth: 1,
+        borderColor: '#007BFF',
+        padding: 10,
+        borderRadius: 5,
+        marginTop: 5,
+        backgroundColor: '#fff',
+        flex: 2,
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    button: {
+        backgroundColor: '#28a745',
+        paddingVertical: 12,
+        borderRadius: 30,
+        alignItems: 'center',
+        marginTop: 10,
+        marginBottom: 10,
+    },
+    buttonText: {
+        color: '#FFFFFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    errorText: {
+        color: 'red',
+        marginTop: 15,
+        textAlign: 'center',
+        fontSize: 20,
+    },
+});
+
+export default UserProfileScreen;

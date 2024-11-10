@@ -1,0 +1,129 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import auth from '@react-native-firebase/auth';
+import styles from './RegisterStyle';
+
+const RegisterScreen = ({ navigation }) => {
+    const [phone, setPhone] = useState('');
+    const [otp, setOtp] = useState('');
+    const [countdown, setCountdown] = useState(0);
+    const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+    const [confirm, setConfirm] = useState(null);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [otpSentMessage, setOtpSentMessage] = useState('');
+
+
+    const clearPhoneNumber = () => {
+        setPhone('');
+        setErrorMessage(''); // Reset error message
+    };
+
+    const isValidPhoneNumber = (number) => {
+        const phoneRegex = /^(0[0-9]\d{8})$/; // Kiểm tra số điện thoại Việt Nam
+        return phoneRegex.test(number);
+    };
+
+    const sendOtp = async () => {
+        if (!isValidPhoneNumber(phone)) {
+            setErrorMessage('Số điện thoại không hợp lệ!');
+            return;
+        }
+        const formattedPhone = `+84${phone.slice(1)}`; // Bỏ số 0 ở đầu
+
+        try {
+            const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
+            setConfirm(confirmation);
+            setCountdown(60); // Set 60S CountDown OTP
+            setIsButtonDisabled(true);
+            setErrorMessage(''); // Reset error message
+            setOtpSentMessage('Đã gửi mã OTP thành công!');
+            setTimeout(() => {
+                setOtpSentMessage('');
+            }, 5000);
+        } catch (error) {
+            console.error('Error sending OTP:', error);
+            setErrorMessage('Gửi mã xác minh thất bại. Vui lòng kiểm tra số điện thoại.');
+        }
+    };
+
+    useEffect(() => {
+        let timer;
+        if (countdown > 0) {
+            timer = setInterval(() => {
+                setCountdown(prev => prev - 1);
+            }, 1000);
+        } else {
+            setIsButtonDisabled(false);
+        }
+        return () => clearInterval(timer);
+    }, [countdown]);
+
+    const handleNext = async () => {
+        if (!isValidPhoneNumber(phone)) {
+            setErrorMessage('Số điện thoại không hợp lệ!');
+            return;
+        }
+        if (!otp || otp.length < 6) {
+            setErrorMessage('Mã OTP không hợp lệ!');
+            return;
+        }
+        try {
+            await confirm.confirm(otp);
+            setErrorMessage('');
+            navigation.navigate('Bổ Sung Thông Tin'); // Chuyển đến màn hình tiếp theo
+        } catch (error) {
+            setErrorMessage('Mã xác minh không đúng.');
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <Text style={styles.header}>Đăng Ký Tài Khoản</Text>
+            <Text style={styles.label}>Bổ sung thông tin để tiếp tục</Text>
+            <Text style={styles.label}>Số điện thoại:</Text>
+            <View style={styles.viewContainer}>
+                <TextInput
+                    style={styles.viewInput}
+                    value={phone}
+                    onChangeText={setPhone}
+                    maxLength={10}
+                    keyboardType="numeric"
+                    placeholder="Nhập số điện thoại"
+                />
+                <TouchableOpacity onPress={clearPhoneNumber} style={styles.containerButton}>
+                    <Text style={styles.buttonText}>Xóa</Text>
+                </TouchableOpacity>
+            </View>
+            <Text style={styles.counter}>{phone.length}/10</Text>
+            <Text style={styles.label}>Mã OTP:</Text>
+            <View style={styles.viewContainer}>
+                <TextInput
+                    style={styles.viewInput}
+                    value={otp}
+                    onChangeText={setOtp}
+                    maxLength={6}
+                    keyboardType="numeric"
+                    placeholder="Nhập mã OTP"
+                />
+                <TouchableOpacity
+                    onPress={sendOtp}
+                    style={[styles.containerButton, isButtonDisabled && styles.disabledButton]}
+                    disabled={isButtonDisabled}
+                >
+                    <Text style={styles.buttonText}>
+                        {isButtonDisabled ? `Gửi lại (${countdown}s)` : 'Gửi OTP'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+            <Text style={styles.counter}>{otp.length}/6</Text>
+
+            <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+                <Text style={styles.nextText}>Tiếp Theo</Text>
+            </TouchableOpacity>
+            {otpSentMessage ? <Text style={styles.successText}>{otpSentMessage}</Text> : null}
+            {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+        </View>
+    );
+};
+
+export default RegisterScreen;

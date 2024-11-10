@@ -1,0 +1,66 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import styles from './RegisterStyle';
+
+const RegisterInfo = ({ navigation }) => {
+    const [fullName, setFullName] = useState('');
+    const [cccd, setCccd] = useState('');
+    const [dob, setDob] = useState('');
+    const [address, setAddress] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const handleNext = () => {
+        if (!fullName) {
+            setErrorMessage('Hãy nhập Họ và tên!');
+        }
+        else {
+            setErrorMessage('');
+            console.log('Thông tin:', { fullName, cccd, dob, address });
+            navigation.navigate('Đăng Nhập');
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <Text style={styles.header}>Thông Tin Cá Nhân</Text>
+            <Text style={styles.label}>Họ và tên:</Text>
+            <TextInput
+                style={styles.input}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Nhập họ và tên"
+            />
+            <Text style={styles.label}>CCCD:</Text>
+            <TextInput
+                style={styles.input}
+                value={cccd}
+                onChangeText={setCccd}
+                placeholder="Nhập số CCCD"
+                keyboardType="numeric"
+                maxLength={12}
+            />
+            <Text style={styles.label}>Ngày sinh:</Text>
+            <TextInput
+                style={styles.input}
+                value={dob}
+                onChangeText={setDob}
+                placeholder="Nhập ngày sinh (dd/mm/yyyy)"
+            />
+            <Text style={styles.label}>Địa chỉ:</Text>
+            <TextInput
+                style={styles.input}
+                value={address}
+                onChangeText={setAddress}
+                placeholder="Nhập địa chỉ"
+            />
+            <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+                <Text style={styles.nextText}>Hoàn Thành</Text>
+            </TouchableOpacity>
+            {errorMessage ? (
+                <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+        </View>
+    );
+};
+
+export default RegisterInfo;

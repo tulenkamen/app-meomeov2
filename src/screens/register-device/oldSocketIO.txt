@@ -1,0 +1,143 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import io from 'socket.io-client';
+import styles from './RegisterStyle';
+
+const RegisterDeviceScreen = ({ navigation }) => {
+    const [deviceId, setDeviceId] = useState('');
+    const [responseMessage, setResponseMessage] = useState('');
+    const [socket, setSocket] = useState(null);
+    const [timeoutId, setTimeoutId] = useState(null);
+    const [isConnected, setIsConnected] = useState(false);
+
+    const connectSocket = () => {
+        const socketConnection = io('http://192.168.1.14:5000', {
+            reconnectionAttempts: 1,
+            timeout: 5000,
+        });
+
+        console.log('Connecting to Socket.IO server...');
+
+        socketConnection.on('connect', () => {
+            console.log('Successfully connected to the server:', socketConnection.id);
+            setIsConnected(true);
+        });
+
+        socketConnection.on('connect_error', () => {
+            console.log('Connection error occurred.');
+            showResponseMessage('Kết nối tới máy chủ bị gián đoạn.');
+            socketConnection.disconnect();
+        });
+
+        socketConnection.on('deviceIdResponse', (data) => {
+            console.log('Response from server:', data);
+            showResponseMessage(data.message);
+            if (data.status === 'success') {
+                {
+                    setTimeout(() => { //Wait for 2 secconds
+                        navigation.navigate('Đăng Nhập');
+                    }, 1000);
+                };
+            }
+        });
+
+        socketConnection.on('disconnect', () => {
+            console.log('Disconnected from server');
+            setIsConnected(false);
+        });
+
+        setSocket(socketConnection);
+    };
+
+    const showResponseMessage = (message) => {
+        setResponseMessage(message);
+
+        // Xóa timeout cũ nếu có
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+
+        // Thiết lập timeout mới để ẩn thông báo sau 10 giây
+        const id = setTimeout(() => {
+            setResponseMessage('');
+        }, 5000);
+
+        setTimeoutId(id);
+    };
+
+    useEffect(() => {
+        connectSocket();
+
+        return () => {
+            if (socket) {
+                socket.disconnect();
+            }
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            console.log('Socket disconnected');
+        };
+    }, []);
+
+    const handleDeviceIdChange = (text) => {
+        const textRegex = text.replace(/[^0-9A-Fa-f]/g, '').slice(0, 12);
+        const dotReform = textRegex.match(/.{1,2}/g)?.join(':') || '';
+        setDeviceId(dotReform);
+        // console.log('Device ID input changed:', dotReform);
+    };
+
+    const handleSubmit = () => {
+        if (deviceId.length < 17) {
+            showResponseMessage('Mã không hợp lệ, vui lòng kiểm tra lại!');
+            return;
+        }
+
+        if (socket) {
+            console.log('Submitting device ID:', deviceId);
+            socket.emit('checkDeviceId', deviceId);
+        } else {
+            console.log('Socket is not connected. Please check the connection.');
+        }
+    };
+    const clearTexts = () => {
+        setDeviceId('');
+    };
+    return (
+        <View style={styles.container}>
+            <Text style={styles.header}>Nhập mã liên kết với thiết bị</Text>
+            <Text style={styles.label}>Mã Device ID:</Text>
+            <View style={styles.viewContainer2}>
+                <TextInput
+                    style={styles.viewInput}
+                    value={deviceId}
+                    onChangeText={handleDeviceIdChange}
+                    maxLength={17}
+                    placeholder="00:00:00:00:00:00"
+                    keyboardType="default"
+                />
+                <TouchableOpacity onPress={clearTexts} style={styles.containerButton}>
+                    <Text style={styles.buttonText}>Xóa</Text>
+                </TouchableOpacity>
+            </View>
+            <Text style={styles.counter}>{deviceId.length}/17</Text>
+            {responseMessage ? <Text style={styles.errorText}>{responseMessage}</Text> : null}
+            <View style={styles.viewContainer}>
+                <TouchableOpacity
+                    style={styles.nextButton}
+                    onPress={handleSubmit}
+                    disabled={!deviceId}
+                >
+                    <Text style={styles.nextText}>Hoàn Thành</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.lastButton}
+                    onPress={() => navigation.navigate('Auth')}
+                >
+                    <Text style={styles.lastText}>Tôi Sẽ Thiết Lập Sau!</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+};
+
+export default RegisterDeviceScreen;
