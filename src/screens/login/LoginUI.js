@@ -29,6 +29,8 @@ const LoginUI = ({
                     maxLength={10}
                     keyboardType="numeric"
                     placeholder="Nhập số điện thoại"
+                    placeholderTextColor="#666666"
+
                 />
                 <TouchableOpacity onPress={clearPhoneNumber} style={styles.containerButton}>
                     <Text style={styles.buttonText}>Xóa</Text>
@@ -44,6 +46,8 @@ const LoginUI = ({
                     maxLength={6}
                     keyboardType="numeric"
                     placeholder="Nhập mã OTP"
+                    placeholderTextColor="#666666"
+
                 />
                 <TouchableOpacity
                     onPress={sendOtp}

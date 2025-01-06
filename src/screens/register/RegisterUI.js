@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import styles from './RegisterStyle';
 
 const RegisterUI = ({
@@ -14,7 +14,16 @@ const RegisterUI = ({
     countdown,
     handleNext,
     clearPhoneNumber,
+    isLoading,
 }) => {
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Đang gửi mã OTP...</Text>
+                <ActivityIndicator size="large" color="#228B22" />
+            </View>
+        )
+    }
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Đăng Ký Tài Khoản</Text>
@@ -28,6 +37,7 @@ const RegisterUI = ({
                     maxLength={10}
                     keyboardType="numeric"
                     placeholder="Nhập số điện thoại"
+                    placeholderTextColor="#666666"
                 />
                 <TouchableOpacity onPress={clearPhoneNumber} style={styles.containerButton}>
                     <Text style={styles.buttonText}>Xóa</Text>
@@ -43,6 +53,7 @@ const RegisterUI = ({
                     maxLength={6}
                     keyboardType="numeric"
                     placeholder="Nhập mã OTP"
+                    placeholderTextColor="#666666"
                 />
                 <TouchableOpacity
                     onPress={sendOtp}
@@ -56,12 +67,15 @@ const RegisterUI = ({
             </View>
             <Text style={styles.counter}>{otp.length}/6</Text>
 
+            <View id="recaptcha-container" style={styles.recaptchaContainer}></View>
+
             <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
                 <Text style={styles.nextText}>Đăng Ký</Text>
             </TouchableOpacity>
             {otpSentMessage ? <Text style={styles.successText}>{otpSentMessage}</Text> : null}
             {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
         </View>
+
     );
 };
 

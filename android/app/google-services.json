@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "302718367375",
     "project_id": "crud-node-firebase-9181c",
-    "storage_bucket": "crud-node-firebase-9181c.appspot.com"
+    "storage_bucket": "crud-node-firebase-9181c.firebasestorage.app"
   },
   "client": [
     {

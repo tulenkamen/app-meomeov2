@@ -3,6 +3,7 @@ import { View, Text, TextInput, Alert, ScrollView, TouchableOpacity } from 'reac
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
 import styles from './SettingsStyle';
+import messaging from '@react-native-firebase/messaging';
 
 import { useFormDataThreshold } from '../../utils/GlobalVariables';
 
@@ -20,7 +21,11 @@ const SettingsScreen = ({ route }) => {
     const [responseMessageTur, setResponseMessageTur] = useState('');
     const [responseMessageTemp, setResponseMessageTemp] = useState('');
     const [isFisrtClich, setIsFirstClick] = useState(0);
+    const [isClickState, setIsClickState] = useState(false);
+
     const [isHidden, setIsHidden] = useState(false);
+    const [buttonLoaded, setButtonLoaded] = useState(false);
+
 
     const [formDataThreshold, setFormDataThreshold] = useState({});
     const [deviceId, setDeviceId] = useState([]);
@@ -33,6 +38,14 @@ const SettingsScreen = ({ route }) => {
     const shrimpTypes = ['Chưa thiết lập', 'Tôm sú', 'Tùy chỉnh'];
     const shrimpStatuses = ['Chưa thiết lập', 'Tôm giống', 'Tôm non', 'Tôm trưởng thành'];
     const timeUnits = ['Chưa thiết lập', 'Phút', 'Giờ'];
+
+    useEffect(() => {
+        if (formDataThreshold?.species === 2) {
+            setButtonLoaded(true);
+        } else {
+            setButtonLoaded(false);
+        }
+    }, [formDataThreshold?.species]);
 
     const showResponseMessage = (message) => {
         setResponseMessage(message);
@@ -87,7 +100,7 @@ const SettingsScreen = ({ route }) => {
             try {
                 const response = await axios.get(getUserByPhone);
                 const data = response.data[0];
-                console.log(data);
+                // console.log(data);
                 if (data) {
                     setFormData({
                         phoneNumber: data.phoneNumber || '',
@@ -100,7 +113,8 @@ const SettingsScreen = ({ route }) => {
                     setDeviceId(data.deviceId);
                     if (data.deviceId) {
                         getDeviceThreshold(data.deviceId);
-
+                        await messaging().subscribeToTopic(`device_${data.deviceId.replace(/:/g, '_')}`);
+                        console.log(`FCM topiccc: user_${data.deviceId.replace(/:/g, '_')}`);
                     }
                     getTigerPrawnDefaultThreshold();
                 }
@@ -165,6 +179,7 @@ const SettingsScreen = ({ route }) => {
                         notiTimeUnit: linkedData.notiTimeUnit || 0,
                     });
                     updateFormDataThreshold({
+                        deviceId: id,
                         area: linkedData.area || '',
                         areaUnit: linkedData.areaUnit || 0,
                         species: linkedData.species || 0,
@@ -231,7 +246,7 @@ const SettingsScreen = ({ route }) => {
             setIsHidden(false);
             setIsEditing(false);
             setIsFirstClick(0);
-
+            setIsClickState(false);
             Alert.alert('Cập nhật thông tin thành công!');
             showResponseMessage('Cập nhật thông tin hồ nuôi thành công!');
             if (updatedData.species === 1) {
@@ -317,7 +332,7 @@ const SettingsScreen = ({ route }) => {
             }
             else {
                 updateFormDataThreshold(formDataThreshold);
-            }
+            };
 
         } catch (error) {
             console.error('Lỗi khi cập nhật dữ liệu:', error);
@@ -329,30 +344,33 @@ const SettingsScreen = ({ route }) => {
 
     const handleEditSaveThreshold = async () => {
         if (
-            formDataThreshold.pHUpperThreshold < formDataThreshold.pHLowerThreshold ||
-            formDataThreshold.turbidityUpperThreshold < formDataThreshold.turbidityLowerThreshold ||
-            formDataThreshold.tempUpperThreshold < formDataThreshold.tempLowerThreshold
+            Number(formDataThreshold.pHUpperThreshold) < Number(formDataThreshold.pHLowerThreshold) ||
+            Number(formDataThreshold.turbidityUpperThreshold) < Number(formDataThreshold.turbidityLowerThreshold) ||
+            Number(formDataThreshold.tempUpperThreshold) < Number(formDataThreshold.tempLowerThreshold)
         ) {
-            console.error('Giới hạn trên không được nhỏ hơn giới hạn dưới!');
-            showResponseMessagePH('Hãy kiểm tra lại ngưỡng giá trị pH!');
-            showResponseMessageTur('Hãy kiểm tra lại ngưỡng giá trị độ đục!');
-            showResponseMessageTemp('Hãy kiểm tra lại ngưỡng giá trị nhiệt độ!');
-            showResponseMessage('Cập nhật thất bại: Giới hạn trên không được nhỏ hơn giới hạn dưới!');
+            // showResponseMessagePH('Hãy kiểm tra lại ngưỡng giá trị pH!');
+            // showResponseMessageTur('Hãy kiểm tra lại ngưỡng giá trị độ đục!');
+            // showResponseMessageTemp('Hãy kiểm tra lại ngưỡng giá trị nhiệt độ!');
+            showResponseMessage('Hãy kiểm tra lại các ngưỡng giá trị trước khi lưu!');
+            Alert.alert('Ngưỡng giới hạn trên không được nhỏ hơn giới hạn dưới!');
             return;
-        }
+        };
         if (isFisrtClich === 0) {
             if (formDataThreshold.pHUpperThreshold <= 7 || formDataThreshold.pHUpperThreshold > 8.5 || formDataThreshold.pHLowerThreshold < 7 || formDataThreshold.pHLowerThreshold > 8.5) {
                 showResponseMessagePH("Tôm sống ở môi trường trung tính có độ pH khuyến nghị từ 7 tới 8.5, hãy chắc chắn trước khi bạn lưu!");
                 showResponseMessage('Hãy kiểm tra lại trước khi lưu nhé!');
+                setIsClickState(true);
             }
             if (formDataThreshold.turbidityUpperThreshold <= 15 || formDataThreshold.turbidityUpperThreshold > 45 || formDataThreshold.turbidityLowerThreshold < 15 || formDataThreshold.turbidityLowerThreshold > 45) {
                 showResponseMessageTur("Độ đục khuyến nghị cho tôm nằm trong khoảng từ 15 tới 45 NTU, hãy chắc chắn trước khi bạn lưu!");
                 showResponseMessage('Hãy kiểm tra lại trước khi lưu nhé!');
+                setIsClickState(true);
             }
 
             if (formDataThreshold.tempUpperThreshold <= 23 || formDataThreshold.tempUpperThreshold > 30 || formDataThreshold.tempLowerThreshold < 23 || formDataThreshold.tempLowerThreshold > 30) {
                 showResponseMessageTemp("Nhiệt độ nước khuyến nghị cho tôm nằm trong khoảng từ 23 tới 30 °C, hãy chắc chắn rằng tôm sẽ không bị luộc chín trước khi thu hoạch!");
                 showResponseMessage('Hãy kiểm tra lại trước khi lưu nhé!');
+                setIsClickState(true);
             }
             else {
                 showResponseMessage('Hãy kiểm tra lại trước khi lưu nhé!');
@@ -360,8 +378,8 @@ const SettingsScreen = ({ route }) => {
             setIsFirstClick(1);
             return;
 
-        }
-        if (isFisrtClich === 1) {
+        };
+        if (isFisrtClich === 1 && isClickState === true) {
             showResponseMessage('Nếu bạn đã chắc chắn hãy nhấn lưu thêm một lần nữa!');
             setIsFirstClick(2);
             return;
@@ -387,7 +405,7 @@ const SettingsScreen = ({ route }) => {
 
             setIsEditingThreshold(false);
             setIsFirstClick(0);
-
+            setIsClickState(false);
             updateFormDataThreshold(formDataThreshold);
 
             showResponseMessage('Cập nhật thông tin hồ nuôi thành công!');
@@ -456,7 +474,6 @@ const SettingsScreen = ({ route }) => {
                         ))}
                     </Picker>
                 </View>
-
                 {formDataThreshold?.species === 1 && (
                     <View style={styles.row}>
                         <Text style={styles.labelText1}>Trạng thái: </Text>
@@ -576,7 +593,7 @@ const SettingsScreen = ({ route }) => {
                     </Picker>
 
                 </View>
-                {isHidden !== true && (
+                {buttonLoaded === true && (
                     isEditingThreshold ? (
                         <CustomButton title="Lưu" onPress={handleEditSaveThreshold} />
                     ) : (
@@ -584,6 +601,8 @@ const SettingsScreen = ({ route }) => {
                     )
                 )}
 
+                {formDataThreshold?.species === 0 && (<Text style={styles.labelText1}>Hãy thiết lập đầy đủ Thông tin hồ nuôi trước khi thiết lập ngưỡng thông báo nhé! </Text>
+                )}
             </View>
 
             {responseMessage ? <Text style={styles.errorText}>{responseMessage}</Text> : null}

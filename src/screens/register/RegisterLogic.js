@@ -9,7 +9,9 @@ const useRegisterLogic = (navigation) => {
     const [confirm, setConfirm] = useState(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [otpSentMessage, setOtpSentMessage] = useState('');
-    const url = `https://meomeov2-besv.onrender.com/users/create`;
+    const [isLoading, setIsLoading] = useState(false);
+
+
     const clearPhoneNumber = () => {
         setPhone('');
         setErrorMessage(''); // Reset error message
@@ -21,12 +23,40 @@ const useRegisterLogic = (navigation) => {
     };
 
     const sendOtp = async () => {
+        setIsLoading(true);
         if (!isValidPhoneNumber(phone)) {
             setErrorMessage('Số điện thoại không hợp lệ!');
+            setIsLoading(false);
             return;
         }
         const formattedPhone = `+84${phone.slice(1)}`; // Bỏ số 0 ở đầu
+        try {
+            // Lấy danh sách người dùng
+            const response = await fetch(`https://meomeov2-besv.onrender.com/users/get-users`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
 
+            if (!response.ok) {
+                setErrorMessage('Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng!');
+                return;
+            }
+
+            const users = await response.json();
+            const phoneExists = users.some(user => user.phoneNumber === phone);
+
+            if (phoneExists) {
+                setIsLoading(false);
+                setErrorMessage('Số điện thoại đã được đăng ký, vui lòng kiểm tra lại!');
+                return;
+            }
+        }
+        catch (error) {
+            setErrorMessage('Vui lòng kiểm tra lại kết nối mạng.');
+
+        };
         try {
             const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
             setConfirm(confirmation);
@@ -41,6 +71,8 @@ const useRegisterLogic = (navigation) => {
             console.error('Error sending OTP:', error);
             setErrorMessage('Gửi mã xác minh thất bại. Vui lòng kiểm tra số điện thoại.');
         }
+        setIsLoading(false);
+
     };
 
     useEffect(() => {
@@ -58,60 +90,65 @@ const useRegisterLogic = (navigation) => {
     const handleNext = async () => {
         if (!isValidPhoneNumber(phone)) {
             setErrorMessage('Số điện thoại không hợp lệ!');
+            setIsLoading(false);
             return;
         }
         if (!otp || otp.length < 6) {
             setErrorMessage('Mã OTP không hợp lệ!');
+            setIsLoading(false);
             return;
         }
+        const formattedPhone = `+84${phone.slice(1)}`;
+
         try {
-            await confirm.confirm(otp);
-            setErrorMessage('');
-        } catch (error) {
-            setErrorMessage('Mã xác minh không đúng.');
-        }
-        try {
-            await confirm.confirm(otp);
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ phoneNumber: phone }),
-                });
-                if (!response.ok) {
-                    console.log(response.status);
-                    if (response.status === 400) { //Trùng phoneNumber
-                        const errorData = await response.json();
-                        setErrorMessage(errorData.message || 'Có lỗi xảy ra!');
-                    } else {
-                        setErrorMessage('Có lỗi xảy ra khi gửi dữ liệu. Vui lòng kiểm tra kết nối mạng!');
-                        throw new Error('Network response was not ok');
-                    }
-                }
-                else {
-                    setErrorMessage('Đăng ký số điện thoại thành công!');
-                    setTimeout(() => { //Wait for 2 secconds
-                        navigation.navigate('Bổ Sung Thông Tin', { phone });
-                        // Chuyển đến màn hình đăng nhập
-                    }, 1000);
-                }
-            } catch (error) {
-                console.error('Có lỗi xảy ra:', error);
-                if (error.message === 'Network request failed') {
-                    setErrorMessage('Không thể kết nối đến Máy chủ. Vui lòng kiểm tra kết nối mạng!');
-                } else if (error.message.includes('Unexpected token')) {
-                    setErrorMessage('Có lỗi xảy ra từ Máy chủ! Vui lòng thử lại hoặc liên hệ hỗ trợ: 0839359757!.');
-                } else if (error.message.includes('Already read')) {
-                    setErrorMessage('Số điện thoại đã được đăng ký, vui lòng kiểm tra lại!.');
-                } else {
-                    console.error('Có lỗi xảy ra:', error);
-                    setErrorMessage('Có lỗi xảy ra khi gửi dữ liệu. Vui lòng kiểm tra kết nối mạng!');
-                }
+            // Lấy danh sách người dùng
+            const response = await fetch(`https://meomeov2-besv.onrender.com/users/get-users`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                setErrorMessage('Không thể kết nối tới máy chủ, vui lòng kiểm tra kết nối mạng!');
+                return;
             }
-        } catch (error) { }
+
+            const users = await response.json();
+
+            // Kiểm tra xem số điện thoại đã tồn tại chưa
+            const phoneExists = users.some(user => user.phoneNumber === phone);
+
+            if (phoneExists) {
+                setErrorMessage('Số điện thoại đã được đăng ký, vui lòng kiểm tra lại!');
+                return;
+            }
+            await confirm.confirm(otp);
+            setErrorMessage('Đăng ký số điện thoại thành công!');
+            await auth().signOut();
+            setIsLoading(false);
+            setTimeout(() => { //Wait for 2 secconds
+                setErrorMessage('');
+                // Chuyển đến màn hình đăng nhập
+            }, 1000);
+            navigation.navigate('Bổ Sung Thông Tin', { phone });
+
+        } catch (error) {
+            console.error('Có lỗi xảy ra:', error);
+            if (error.message === 'Network request failed') {
+                setErrorMessage('Không thể kết nối đến Máy chủ. Vui lòng kiểm tra kết nối mạng!');
+            } else if (error.message.includes('Unexpected token')) {
+                setErrorMessage('Có lỗi xảy ra từ Máy chủ! Vui lòng thử lại hoặc liên hệ hỗ trợ: 0839359757!.');
+            } else if (error.message.includes('Already read')) {
+                setErrorMessage('Số điện thoại đã được đăng ký, vui lòng kiểm tra lại!.');
+            } else {
+                console.error('Có lỗi xảy ra:', error);
+                setErrorMessage('Có lỗi xảy ra khi gửi dữ liệu. Vui lòng kiểm tra kết nối mạng!');
+            }
+        }
+
     };
+
 
     return {
         phone,
@@ -125,6 +162,7 @@ const useRegisterLogic = (navigation) => {
         sendOtp,
         handleNext,
         clearPhoneNumber,
+        isLoading,
     };
 };
 

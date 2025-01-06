@@ -47,7 +47,7 @@ const MainTabNavigator = () => {
     return (
         <FormDataProvider>
             <Tab.Navigator
-                initialRouteName="Cài Đặt"
+                initialRouteName="Quan Trắc"
                 screenOptions={({ route }) => ({
                     tabBarIcon: ({ color, size }) => {
                         let iconName;

@@ -7,6 +7,33 @@ const useRegisterInfoLogic = (navigation, phone) => {
     const [address, setAddress] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [phoneNumber, setPhoneNumber] = useState(phone);
+    const urlCreate = `https://meomeov2-besv.onrender.com/users/create`;
+
+
+    const createUser = async () => {
+        try {
+            const response = await fetch(urlCreate, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ phoneNumber }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                setErrorMessage(errorData.message || 'Có lỗi khi tạo người dùng!');
+                throw new Error('User creation failed');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Có lỗi xảy ra khi tạo người dùng:', error);
+            setErrorMessage('Không thể tạo người dùng. Vui lòng kiểm tra kết nối mạng!');
+            throw error;
+        }
+    };
+
     const handleNext = async () => {
         if (!name) {
             setErrorMessage('Không được để trống Họ và tên!');
@@ -19,6 +46,8 @@ const useRegisterInfoLogic = (navigation, phone) => {
             console.log(url);
 
             try {
+                await createUser();
+
                 const response = await fetch(url, {
                     method: 'PUT',
                     headers: {

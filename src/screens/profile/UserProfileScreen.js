@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, Switch, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import styles from './UserProfileStyle';
 import auth from '@react-native-firebase/auth';
+import messaging from '@react-native-firebase/messaging';
+import firestore from '@react-native-firebase/firestore';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 
 const UserProfileScreen = ({ navigation, route }) => {
@@ -18,6 +21,15 @@ const UserProfileScreen = ({ navigation, route }) => {
     const [timeoutId, setTimeoutId] = useState(null);
     const [responseMessage, setResponseMessage] = useState('');
     const [deviceStatus, setDeviceStatus] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const [isEditingEmail, setIsEditingEmail] = useState(false);
+    const [formDataEmail, setFormDataEmail] = useState({});
+    const [formDataEmailPicker, setFormDataEmailPicker] = useState({ emailPicker: false });
+
+    const [date, setDate] = useState(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
 
     const showResponseMessage = (message) => {
         setResponseMessage(message);
@@ -30,8 +42,87 @@ const UserProfileScreen = ({ navigation, route }) => {
         setTimeoutId(id);
     };
 
-    console.log(phoneNumber);
-    console.log('Phone:', phone);
+    const toggleSwitch = async () => {
+        const newValue = !formDataEmailPicker.emailPicker;
+        setFormDataEmailPicker({ emailPicker: newValue });
+
+        try {
+            await axios.put(updateUserByPhone, { emailPicker: newValue });
+            console.log('Email picker status:', newValue);
+        } catch (error) {
+            console.error('Lỗi khi cập nhật trạng thái:', error);
+        }
+    };
+    // console.log('picker', formDataEmailPicker);
+
+    //Updating Gmail Button Status
+    const handleChangeEmail = (field, value) => {
+        showResponseMessage('');
+        setFormDataEmail({ ...formDataEmail, [field]: value });
+    };
+    //Date and Time change
+    console.log('new date', date);
+
+    const handleDateChange = (event, selectedDate) => {
+        setShowDatePicker(false);
+        if (event.type === 'set') {
+            const newDate = selectedDate || date;
+
+            newDate.setHours(0, 0, 0, 0);
+
+            setDate(newDate);
+            const timestamp = {
+                seconds: Math.floor(newDate.getTime() / 1000),
+                nanoseconds: (newDate.getTime() % 1000) * 1000000
+            };
+
+            setFormDataEmail({ ...formDataEmail, timestampDate: timestamp });
+            console.log('date', timestamp);
+        }
+    };
+
+    const handleTimeChange = (event, selectedTime) => {
+        setShowTimePicker(false);
+        if (event.type === 'set') {
+            const hours = selectedTime.getHours();
+            const minutes = selectedTime.getMinutes();
+            const seconds = selectedTime.getSeconds();
+
+            const newDate = new Date(date);
+            console.log('newdatedate', newDate);
+            newDate.setHours(hours, minutes, seconds);
+            console.log('newhour', newDate);
+            setDate(newDate);
+
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+            const timestamp = {
+                seconds: totalSeconds,
+                nanoseconds: 0
+            };
+
+            setFormDataEmail({ ...formDataEmail, timestampTime: timestamp });
+            console.log('time', timestamp);
+        }
+    };
+    const handleEditEmail = () => {
+        showResponseMessage('');
+        setIsEditingEmail(true);
+    };
+
+    const handleSaveEmail = async () => {
+
+        try {
+            await axios.put(updateUserByPhone, formDataEmail);
+            Alert.alert('Cập nhật thông tin hồ sơ thành công!');
+
+        } catch (error) {
+            console.error('Lỗi khi cập nhật dữ liệu:', error);
+            Alert.alert('Cập nhật thông tin hồ sơ thất bại, kiểm tra lại kết nối Internet!');
+
+        }
+        setIsEditingEmail(false);
+    };
 
     const getUserByPhone = `https://meomeov2-besv.onrender.com/users/get-phone/${phoneNumber}`;
     const updateUserByPhone = `https://meomeov2-besv.onrender.com/users/update-phone/${phoneNumber}`;
@@ -42,7 +133,7 @@ const UserProfileScreen = ({ navigation, route }) => {
             try {
                 const response = await axios.get(getUserByPhone);
                 const data = response.data[0];
-                console.log(data);
+                // console.log('sss', data);
                 if (data) {
                     setUserData(data);
                     setFormData({
@@ -52,18 +143,35 @@ const UserProfileScreen = ({ navigation, route }) => {
                         citizenNumber: data.citizenNumber || '',
                         name: data.name || '',
                     });
-                    const deviceID = data.deviceId || '';
+                    setFormDataEmail({
+                        email: data.email || '',
+                        timestampDate: data.timestampDate || '',
+                        timestampTime: data.timestampTime || '',
+                    });
+                    setFormDataEmailPicker({ emailPicker: data.emailPicker });
+                    const deviceID = data.deviceId || 'undefined';
                     setFormDataDevice({
                         deviceId: deviceID || '',
                     });
                     setDeviceId(deviceID);
                     console.log(deviceId);
+                    if (data.timestampDate && data.timestampTime) {
+                        const dateSeconds = data.timestampDate.seconds;
+                        const timeSeconds = data.timestampTime.seconds;
+                        const date = new Date(dateSeconds * 1000 + timeSeconds * 1000);
+                        const timeDate = new Date(date);
+                        const timeHours = Math.floor(timeSeconds / 3600);
+                        const timeMinutes = Math.floor((timeSeconds % 3600) / 60);
+                        timeDate.setHours(timeHours, timeMinutes, 0);
+                        setDate(timeDate);
+                        console.log('timeda', timeDate);
+                    }
                     if (deviceID) {
                         fetchDeviceStatus(deviceID);
                     }
                 }
             } catch (error) {
-                console.error('Lỗi khi lấy dữ liệu:', error);
+                console.error('Lỗi khi lấy dữ liệu người dùng:', error);
                 showResponseMessage('Không thể lấy dữ liệu, kiểm tra lại kết nối Internet!!!');
             }
         };
@@ -71,8 +179,6 @@ const UserProfileScreen = ({ navigation, route }) => {
             fetchData();
         }
     }, [phoneNumber]);
-
-
 
     const fetchDeviceStatus = async (id) => {
         if (id && id.length > 0) {
@@ -108,7 +214,6 @@ const UserProfileScreen = ({ navigation, route }) => {
     const handleSave = async () => {
         try {
             await axios.put(updateUserByPhone, formData);
-            setUserData(formData);
             setIsEditing(false);
             showResponseMessage('Cập nhật người dùng thành công!');
             Alert.alert('Cập nhật người dùng thành công!');
@@ -145,7 +250,7 @@ const UserProfileScreen = ({ navigation, route }) => {
 
 
     const handleDeviceIdChange = (text) => {
-        const textRegex = text.slice(0, 12);
+        const textRegex = text.replace(/:/g, '').slice(0, 12);
         const dotReform = textRegex.match(/.{1,2}/g)?.join(':') || '';
         setDeviceId(dotReform);
     };
@@ -160,20 +265,40 @@ const UserProfileScreen = ({ navigation, route }) => {
             showResponseMessage('Thiết bị không tồn tại, vui lòng kiểm tra lại mã!!!');
             return;
         }
+
         try {
-            await axios.put(updateUserByPhone, {
-                deviceId: deviceId,
-            });
-            setFormDataDevice({ ...formDataDevice, deviceId });
-            setIsEditingDevice(false);
-            showResponseMessage('Cập nhật thiết bị thành công!');
-            Alert.alert('Cập nhật thiết bị thành công!');
+            await firestore()
+                .collection('devices')
+                .doc(userData.deviceId || 'undefined')
+                .update({
+                    [`linkedPhone:${phoneNumber}`]: firestore.FieldValue.delete()
+                });
 
+            try {
+                await axios.put(updateUserByPhone, {
+                    deviceId: deviceId,
+                });
+                setFormDataDevice({ ...formDataDevice, deviceId });
+                setIsEditingDevice(false);
+                showResponseMessage('Cập nhật thiết bị thành công!');
+                Alert.alert('Thông Báo',
+                    'Cập nhật thiết bị mới thành công! Vui lòng đăng nhập lại!',
+                    [{
+                        text: 'OK',
+                        onPress: async () => {
+                            await handleLogout();
+                        },
+                    }]
+                );
+
+            } catch (error) {
+                console.error('Lỗi khi cập nhật thiết bị:', error);
+                showResponseMessage('Không thể lấy dữ liệu, kiểm tra lại kết nối Internet!!!');
+                Alert.alert('Lỗi khi lấy dữ liệu, kiểm tra kết nối internet.');
+            }
         } catch (error) {
-            console.error('Lỗi khi cập nhật thiết bị:', error);
-            showResponseMessage('Không thể lấy dữ liệu, kiểm tra lại kết nối Internet!!!');
-            Alert.alert('Lỗi khi lấy dữ liệu, kiểm tra lại kết nối internet.');
-
+            console.error('Lỗi khi xóa số điện thoại liên kết:', error);
+            showResponseMessage('Không thể xóa số điện thoại liên kết, vui lòng thử lại.');
         }
     };
 
@@ -187,7 +312,26 @@ const UserProfileScreen = ({ navigation, route }) => {
     };
 
     const handleLogout = async () => {
+        setIsLoading(true);
         try {
+            const token = await messaging().getToken();
+            await messaging().deleteToken();
+            console.log('Token đã bị xóa', token);
+            const userTopic = `user_${phone}`;
+            const deviceTopic = `device_${deviceId.replace(/:/g, '_')}`;
+            await messaging().unsubscribeFromTopic(userTopic);
+            console.log(`Hủy topic ${userTopic}`);
+            await messaging().unsubscribeFromTopic(deviceTopic);
+            console.log(`Hủy topic ${deviceTopic}`);
+            try {
+                const response = await axios.put(`https://meomeov2-besv.onrender.com/users/update-phone/${phone}`, {
+                    fcmToken: '',
+                });
+                console.log('Token updated successfully:', response.data);
+            } catch (error) {
+                console.error('Error updating token:', error);
+            }
+
             await auth().signOut();
             console.log('Đăng xuất thành công');
             navigation.navigate('Auth');
@@ -195,6 +339,9 @@ const UserProfileScreen = ({ navigation, route }) => {
             console.error('Lỗi khi đăng xuất:', error);
             showResponseMessage('Đăng xuất thất bại! Vui lòng thử lại.');
             Alert.alert('Đăng xuất thất bại! Vui lòng thử lại.');
+        }
+        finally {
+            setIsLoading(false);
         }
     };
 
@@ -228,12 +375,98 @@ const UserProfileScreen = ({ navigation, route }) => {
         </TouchableOpacity>
     );
 
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Đang đăng xuất, đợi xíu...</Text>
+                <ActivityIndicator size="large" color="#228B22" />
+            </View>
+        )
+    }
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <View style={styles.Container}>
                 <Text style={styles.header}>Xin chào, {userData?.name}!</Text>
-                <CustomButton2 title="Đăng xuất" onPress={confirmLogout} />
 
+                <View style={styles.Container2}>
+                    <View style={styles.switchContainer}>
+                        <Text style={styles.header2}>Báo Cáo Hàng Ngày</Text>
+                        <View style={styles.switchWrapper}>
+                            <Switch
+                                trackColor={{ false: "#767577", true: "#81b0ff" }}
+                                thumbColor={formDataEmailPicker.emailPicker ? "#0056b3" : "#f4f3f4"}
+                                onValueChange={toggleSwitch}
+                                value={formDataEmailPicker.emailPicker}
+                                style={styles.switch}
+                            />
+                        </View>
+                    </View>
+                    {formDataEmailPicker.emailPicker && (
+                        <View style={styles.Container2}>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Email nhận báo cáo:</Text>
+                                <TextInput
+                                    style={isEditingEmail ? styles.input2 : styles.input}
+                                    placeholder="example@Email.com"
+                                    value={formDataEmail.email}
+                                    onChangeText={(value) => handleChangeEmail('email', value)}
+                                    editable={isEditingEmail}
+                                />
+                            </View>
+                            <Text style={styles.label}>Nhận báo cáo vào:</Text>
+
+                            <View style={styles.row}>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if (isEditingEmail) {
+                                            setShowDatePicker(true);
+                                        }
+                                    }}
+                                    style={[styles.buttonTime, { backgroundColor: isEditingEmail ? '#28a745' : '#666666' }]}
+                                    disabled={!isEditingEmail}
+                                >
+                                    <Text style={styles.buttonText}>{date.toLocaleDateString()}</Text>
+                                </TouchableOpacity>
+                                {showDatePicker && (
+                                    <DateTimePicker
+                                        value={date}
+                                        mode="date"
+                                        display="default"
+                                        onChange={handleDateChange}
+                                    />
+                                )}
+
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if (isEditingEmail) {
+                                            setShowTimePicker(true);
+                                        }
+                                    }}
+                                    style={[styles.buttonTime, { backgroundColor: isEditingEmail ? '#28a745' : '#666666' }]}
+                                    disabled={!isEditingEmail}
+                                >
+                                    <Text style={styles.buttonText}>{date.toLocaleTimeString()}</Text>
+                                </TouchableOpacity>
+                                {showTimePicker && (
+                                    <DateTimePicker
+                                        value={date}
+                                        mode="time"
+                                        display="default"
+                                        onChange={handleTimeChange}
+                                    />
+                                )}
+                            </View>
+
+
+                            {isEditingEmail ? (
+                                <CustomButton title="Lưu" onPress={handleSaveEmail} />
+                            ) : (
+                                <CustomButton title="Chỉnh sửa" onPress={handleEditEmail} />
+                            )}
+                            <CustomButton2 title="Đăng xuất" onPress={confirmLogout} />
+                        </View>
+                    )}
+                </View>
             </View>
 
             {userData && (
@@ -300,9 +533,10 @@ const UserProfileScreen = ({ navigation, route }) => {
                     </View>
 
                     <View style={styles.Container}>
+                        <Text style={styles.header2}>Thiết Bị Của Bạn</Text>
 
                         <View style={styles.row}>
-                            <Text style={styles.label}>Thiết bị của bạn:</Text>
+                            <Text style={styles.label}>Mã thiết bị:</Text>
                             <TextInput
                                 style={isEditingDevice ? styles.input2 : styles.input}
                                 value={isEditingDevice ? deviceId : formDataDevice.deviceId}

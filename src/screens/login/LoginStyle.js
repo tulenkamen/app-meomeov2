@@ -1,81 +1,86 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
+        padding: width * 0.05,
     },
     header: {
-        fontSize: 28,
+        fontSize: width * 0.075,
         fontWeight: 'bold',
-        marginBottom: 20,
+        marginBottom: height * 0.025,
+        color: 'black',
     },
     label: {
-        fontSize: 18,
-        marginBottom: 10,
+        fontSize: width * 0.05,
+        marginBottom: height * 0.012,
+        color: 'black',
     },
     nextButton: {
         backgroundColor: '#28a745',
-        paddingVertical: 15,
-        borderRadius: 30,
+        paddingVertical: width * 0.035,
+        borderRadius: width * 0.075,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 20,
+        marginTop: height * 0.025,
     },
     nextText: {
         color: '#fff',
         fontWeight: 'bold',
-        fontSize: 18,
+        fontSize: width * 0.05,
     },
     viewContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 10,
+        marginVertical: height * 0.012,
     },
     viewInput: {
+        color: 'black',
         flex: 1,
         borderWidth: 1,
         borderColor: '#ccc',
         backgroundColor: '#fff',
         padding: 10,
         marginRight: 2,
-        borderRadius: 10,
-        height: 50,
+        borderRadius: width * 0.012,
+        height: height * 0.07,
     },
     containerButton: {
-        width: 100,
+        width: width * 0.2,
         backgroundColor: '#007BFF',
         paddingVertical: 10,
-        borderRadius: 10,
+        borderRadius: width * 0.025,
         marginLeft: 2,
-        height: 50,
+        height: height * 0.07,
         justifyContent: 'center',
         alignItems: 'center',
     },
     buttonText: {
         color: '#fff',
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: width * 0.035,
     },
     disabledButton: {
         backgroundColor: '#cccccc',
     },
     counter: {
         alignSelf: 'flex-end',
-        marginBottom: 10,
-        color: '#666',
+        marginBottom: height * 0.012,
+        color: '#444444',
     },
     errorText: {
         color: 'red',
-        marginTop: 15,
+        marginTop: height * 0.035,
         textAlign: 'center',
-        fontSize: 20,
+        fontSize: width * 0.05,
     },
     successText: {
         color: 'green',
-        marginTop: 15,
+        marginTop: height * 0.035,
         textAlign: 'center',
-        fontSize: 20,
+        fontSize: width * 0.05,
     },
 });
 

@@ -5,7 +5,7 @@ const FormDataContext = createContext();
 export const useFormDataThreshold = () => useContext(FormDataContext);
 
 export const FormDataProvider = ({ children }) => {
-    const [formDataThreshold, setFormDataThreshold] = useState({});
+    const [globalThreshold, setFormDataThreshold] = useState({});
 
     const updateFormDataThreshold = (data) => {
         console.log("updateFormDataThreshold", data);
@@ -13,7 +13,7 @@ export const FormDataProvider = ({ children }) => {
     };
 
     return (
-        <FormDataContext.Provider value={{ formDataThreshold, updateFormDataThreshold }}>
+        <FormDataContext.Provider value={{ globalThreshold, updateFormDataThreshold }}>
             {children}
         </FormDataContext.Provider>
     );

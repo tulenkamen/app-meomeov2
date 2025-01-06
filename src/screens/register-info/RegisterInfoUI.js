@@ -23,6 +23,8 @@ const RegisterInfoUI = ({
                 value={name}
                 onChangeText={setname}
                 placeholder="Nhập họ và tên"
+                placeholderTextColor="#666666"
+
             />
             <Text style={styles.label}>Mã Số CCCD</Text>
             <TextInput
@@ -30,6 +32,8 @@ const RegisterInfoUI = ({
                 value={citizenNumber}
                 onChangeText={setcitizenNumber}
                 placeholder="Nhập số CCCD:"
+                placeholderTextColor="#666666"
+
                 keyboardType="numeric"
                 maxLength={12}
             />
@@ -39,6 +43,8 @@ const RegisterInfoUI = ({
                 value={dateOfBirth}
                 onChangeText={setdateOfBirth}
                 placeholder="Nhập ngày sinh (dd-mm-yyyy)"
+                placeholderTextColor="#666666"
+
             />
             <Text style={styles.label}>Địa chỉ</Text>
             <TextInput
@@ -46,6 +52,8 @@ const RegisterInfoUI = ({
                 value={address}
                 onChangeText={setAddress}
                 placeholder="Nhập địa chỉ"
+                placeholderTextColor="#666666"
+
             />
             <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
                 <Text style={styles.nextText}>Chỉ Còn 1 Bước Nữa Thôi!</Text>

@@ -11,7 +11,7 @@ const AuthScreen = ({ navigation }) => {
                     style={styles.image}
                 />
                 <Text style={styles.header}>Hệ thống quan trắc và cảnh báo chất lượng nước hồ tôm</Text>
-                <Text style={styles.label}>Một sản phẩm bổ trợ cho những hệ thống bán tự động sẵn có của hộ nuôi tôm, giúp bạn tự động hóa quá trình đo đạc và cập nhật trạng thái môi trường nước trong quá trình phát triển của tôm.  </Text>
+                <Text style={styles.label}>Một sản phẩm bổ trợ cho những hệ thống bán tự động sẵn có của hộ sản xuất, giúp bạn tự động hóa quá trình đo đạc và cập nhật trạng thái môi trường nước trong quá trình phát triển của thủy sản.  </Text>
 
             </View>
             <View style={styles.viewContainer}>

@@ -28,7 +28,7 @@ const RegisterDeviceScreen = ({ navigation, route }) => {
     };
 
     const handleDeviceIdChange = (text) => {
-        const textRegex = text.replace(/[^0-9A-Fa-f]/g, '').slice(0, 12);
+        const textRegex = text.replace(/:/g, '').slice(0, 12);
         const dotReform = textRegex.match(/.{1,2}/g)?.join(':') || '';
         setDeviceId(dotReform);
     };
@@ -95,6 +95,7 @@ const RegisterDeviceScreen = ({ navigation, route }) => {
                     onChangeText={handleDeviceIdChange}
                     maxLength={17}
                     placeholder="00:00:00:00:00:00"
+                    placeholderTextColor="#666666"
                     keyboardType="default"
                 />
                 <TouchableOpacity onPress={clearTexts} style={styles.containerButton}>
@@ -106,14 +107,14 @@ const RegisterDeviceScreen = ({ navigation, route }) => {
             <View style={styles.viewContainer}>
                 <TouchableOpacity
                     style={styles.nextButton}
-                    onPress={() => handleSubmit()} // Thay thế bằng số điện thoại thực tế
+                    onPress={() => handleSubmit()}
                     disabled={!deviceId}
                 >
                     <Text style={styles.nextText}>Hoàn Thành</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.lastButton}
-                    onPress={() => navigation.navigate('Đăng Nhập')}
+                    onPress={() => navigation.navigate('Auth')}
                 >
                     <Text style={styles.lastText}>Tôi Sẽ Thiết Lập Sau!</Text>
                 </TouchableOpacity>

@@ -1,0 +1,37 @@
+├── /node_modules
+├── /src
+│  ├── /assets
+│  ├── /navigators
+│  │   └── MainTabNavigator.js
+│  ├── /utils
+│  │   ├── FirebaseMessaging.js
+│  │   ├── GlobalVariables.js
+│  │   ├── Socket.js
+│  │   └── navigationRef.js
+│  ├── /services
+│  │   └── Routes.js
+│  ├── /sreens
+│  │   ├── /auth
+│  │   │   ├── /UI
+│  │   │   ├── /Logic
+│  │   │   └── AuthScreen.js
+│  │   ├── /login
+│  │   ├── /register
+│  │   ├── /notification
+│  │   │   ├── /notificationUI
+│  │   │   │   ├── NotificationUI.js
+│  │   │   │   └── NotificationItems.js
+│  │   │   ├── /notificationLogic
+│  │   │   │   └── NotificationLogic.js
+│  │   │   └── NotificationrScreen.js
+│  │   ├── /monitor
+│  │   ├── /profile
+│  │   └── /settings
+│  └──────
+├── App.tsx
+├──.env
+├──.gitignore
+├──package.json
+└──README.md
+
+
